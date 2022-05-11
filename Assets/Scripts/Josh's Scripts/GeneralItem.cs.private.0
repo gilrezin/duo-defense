@@ -1,0 +1,41 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class GeneralItem : MonoBehaviour
+{
+
+    private TowerController tower;
+    private KeyboardPlayerController keyboardPlayer;
+    public int itemIndex;
+    private GameObject item;
+
+    // Start is called before the first frame update
+    void Start()
+    {
+        tower = GameObject.Find("Tower").GetComponent<TowerController>();
+        keyboardPlayer = GameObject.Find("KeyboardPlayer").GetComponent<KeyboardPlayerController>();
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        if (tower.DestroyItems == true)
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    public void OnBuy()
+    {
+        Debug.Log("Bought");
+        if (itemIndex == 0)
+        {
+            keyboardPlayer.numOfExplosiveArrows += 10;
+        } else if (itemIndex == 1)
+        {
+            //keyboardPlayer.bow = 
+        }
+    }
+
+}

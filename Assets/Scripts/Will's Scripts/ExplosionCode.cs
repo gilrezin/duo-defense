@@ -5,11 +5,13 @@ using UnityEngine;
 public class ExplosionCode : MonoBehaviour
 {
     private float startTime;
+    private GameManager gameManager;
     // Start is called before the first frame update
     void Start()
     {
         gameObject.GetComponent<Animator>().SetTrigger("PlayAnimation");
         startTime = Time.deltaTime;
+        gameManager = GameObject.Find("GameManager").GetComponent<GameManager>();
     }
 
     // Update is called once per frame
@@ -24,7 +26,14 @@ public class ExplosionCode : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Enemy"))
         {
-            collision.gameObject.GetComponent<Enemy>().DealDamage(10);
+            try
+            {
+                collision.gameObject.GetComponent<Enemy>().DealDamage(10 * gameManager.TempDamageMonitor());
+            }
+            catch
+            {
+
+            }
         }
     }
 }

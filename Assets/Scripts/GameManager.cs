@@ -7,6 +7,8 @@ using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
+    public GameObject gameOverScreenCanvas;
+
     public List<GameObject> enemiesInWave = new List<GameObject>();
     public List<GameObject> enemies = new List<GameObject>();
 
@@ -43,10 +45,18 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI goldText;
     public TextMeshProUGUI waveCount;
     public TextMeshProUGUI enemiesRemainingCount;
+
+    // for temporary damage boost
+    private bool explosiveArrowDone = false;
+    private float startTime;
+
+    public GameObject tutorial;
     
     // Start is called before the first frame update
     void Start()
     {
+        //GameObject.Find("/Canvas/Tutorial").GetComponent<GameObject>().SetActive(true);
+        //GameObject.Find("/Canvas/Tutorial 2").GetComponent<GameObject>().SetActive(true);
         drawText.text = "Draw: " + drawBarValue;
         playerHealthText.text = "Health: " + playerHealth;
         keyboardPlayer = GameObject.Find("KeyboardPlayer").GetComponent<KeyboardPlayerController>();
@@ -58,18 +68,36 @@ public class GameManager : MonoBehaviour
     {
         if (enemiesRemaining == 0)
         {
-            shop.SetActive(true);
+            //shop.SetActive(true);
             
         }
-
         else if (playerHealth <= 0) {
             GameOver();
+        }
+
+        if (drawBarValue < 0) // resets draw bar if value dips below 0
+        {
+            drawBarValue = 0;
+            adjustDrawBarValue(0);
         }
 
         waveCount.text = "Wave: " + wave;
         enemiesRemainingCount.text = "Enemies Remaining: " + enemiesRemaining;
         goldText.text = "Gold: " + money;
+
+        if (Input.GetKeyDown(KeyCode.P)) // devtool to spawn in enemies
+        {
+            Vector3 spawnPos = new Vector3(10,0,-1);
+            Quaternion spawnRotation = new Quaternion(0, 0, 0, 0);
+            Instantiate(enemy, spawnPos, spawnRotation);
+        }
+        if (Input.GetKey(KeyCode.O)) // devtool to add more drawbar
+        {
+            adjustDrawBarValue(1000);
+        }
+
     }
+
 
     public void adjustDrawBarValue(int value) { // modifies the draw bar value by a given amount
         drawBarValue += value;
@@ -106,7 +134,10 @@ public class GameManager : MonoBehaviour
     // creates a list of enemeis to be spawned in the next wave
     public void NewWave()
     {
+        tutorial.SetActive(false);
         shop.SetActive(false);
+        //GameObject.Find("/Canvas/Tutorial").GetComponent<GameObject>().SetActive(false);
+        //GameObject.Find("/Canvas/Tutorial 2").GetComponent<GameObject>().SetActive(false);
         wave += 1;
         numEnemies = 0;
         currentWaveValue = 0;
@@ -153,21 +184,21 @@ public class GameManager : MonoBehaviour
             if (side == 0)
             {
                 spawnY = Random.Range(-6, 6);
-                spawnX = 13;
+                spawnX = 10;
             } else if (side == 1)
             {
                 spawnX = Random.Range(-12, 12);
-                spawnY = 7;
+                spawnY = 6;
             }
             else if (side == 2)
             {
                 spawnY = Random.Range(-6, 6);
-                spawnX = -13;
+                spawnX = -10;
             }
             else if (side == 3)
             {
                 spawnX = Random.Range(-12, 12);
-                spawnY = -7;
+                spawnY = -6;
             }
             
             
@@ -186,7 +217,7 @@ public class GameManager : MonoBehaviour
     public void GameOver()
     {
         isGameOver = true;
-
+        gameOverScreenCanvas.SetActive(true);
     }
 
     public bool IsGameOver()
@@ -224,5 +255,38 @@ public class GameManager : MonoBehaviour
     public void RestartGame()
     {
         SceneManager.LoadScene("SampleScene");
+    }
+
+    public float TempDamageMonitor ()
+    {
+        if (explosiveArrowDone == false)
+        {
+            startTime = Time.deltaTime;
+            explosiveArrowDone = true;
+            return 1.5f;
+        }
+        else if (startTime + 10.0f >= Time.deltaTime)
+        {
+            return 1.5f;
+        }
+
+        return 1;
+    }
+
+    public void MaxHealthUpgrade()
+    {
+        if (money >= 25)
+        {
+            maxPlayerHealth += 10;
+            playerHealth = maxPlayerHealth;
+            UpdateMoney(-25);
+        }
+        
+
+    }
+
+    public void ButtonTest()
+    {
+        Debug.Log("Test");
     }
 }

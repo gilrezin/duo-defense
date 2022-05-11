@@ -15,6 +15,7 @@ public class Enemy : MonoBehaviour
     public int resourceRefill;
     private GameManager gameManager;
     public List<GameObject> lootList;
+    private bool hasDied = false;
     // Start is called before the first frame update
     void Start()
     {
@@ -29,27 +30,37 @@ public class Enemy : MonoBehaviour
             Destroy(gameObject);
         }
     }
-    private void OnCollisionEnter(Collision collision)
-    {
-        /*if (!collision.gameObject.CompareTag("Arrow"))
-        {
-            towerControl.TakeDamage(damage);
-        }
-        Destroy(gameObject);
-
-        // deals damage to the tower
-        towerControl.TakeDamage(damage);*/
-    }
+    
     public void DealDamage (float damage)
     {
+        bool usedRearm = false;
         health = health - damage;
         if (health <= 0)
         {
-            gameManager.enemiesRemaining -= 1;
+            if (hasDied == false)
+            {
+                gameManager.enemiesRemaining -= 1;
+                hasDied = true;
+            }
+            
             int r = Random.Range(2, 5);
             for (int i = 0; i < r; i++)
             {
-                Instantiate(lootList[Random.Range(0, lootList.Count)], gameObject.transform.position, gameObject.transform.rotation);
+                GameObject loot = lootList[Random.Range(0, lootList.Count)];
+                if (!usedRearm && (loot.CompareTag("Explosive Arrow Drop") || loot.CompareTag("Multi Arrow Drop")))
+                {
+                    Instantiate(loot, gameObject.transform.position, gameObject.transform.rotation);
+                    usedRearm = true;
+                }
+                else if (loot.CompareTag("Basic Health Jug"))
+                {
+                    Instantiate(loot, gameObject.transform.position, gameObject.transform.rotation);
+                }
+                else
+                {
+                    Instantiate(lootList[0], gameObject.transform.position, gameObject.transform.rotation);
+                }
+                
             }
             GameObject.Find("GameManager").GetComponent<GameManager>().adjustDrawBarValue(resourceRefill);
 
@@ -87,7 +98,7 @@ public class Enemy : MonoBehaviour
     public void Die()
     {
         
-        Debug.Log("EnemyDestroyed");
+        //Debug.Log("EnemyDestroyed");
         Destroy(gameObject);
     }
 
@@ -95,5 +106,4 @@ public class Enemy : MonoBehaviour
     {
         HurtPlayer();
     }
-
 }

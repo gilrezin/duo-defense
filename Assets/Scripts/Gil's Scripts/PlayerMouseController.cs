@@ -1,6 +1,9 @@
  using UnityEngine;
  using System.Collections.Generic;
  using System.Collections;
+ using UnityEngine.SceneManagement;
+ using UnityEngine.UI;
+ using TMPro;
 
 public class PlayerMouseController : MonoBehaviour
 {  
@@ -18,9 +21,16 @@ public class PlayerMouseController : MonoBehaviour
     private List<Vector2> currentLine;
     private LineRenderer currentLineRenderer;
     private EdgeCollider2D currentLineEdgeCollider;
-    
+    public TextMeshProUGUI wallTypeInfoText; // text that appears when right clicking to change wall type
+    private bool wallTypeInfoActive = false;
+    public GameObject mouseIcon;
+    private readonly int standardWallCost = 1;
+    private readonly int explosiveWallCost = 6;
+
     private EdgeCollider2D currentLineEdgeTrigger;
     private bool drawing = false;
+    public int typeOfWall; // type of wall, default is 0
+    private readonly int typeOfWallLength = 1; // max length of wallType, used to rollback to 0 after right clicking past every option
 
     private Camera mainCamera;
 
@@ -31,6 +41,7 @@ public class PlayerMouseController : MonoBehaviour
 
     private void Update()
     {
+        mouseIcon.transform.position = new Vector3(mainCamera.ScreenToWorldPoint(Input.mousePosition).x, mainCamera.ScreenToWorldPoint(Input.mousePosition).y, -1);
         // if the mouse is pressed down and there exists some draw value, then create a new brush instance
         if (Input.GetKeyDown(KeyCode.Mouse0) && gameManager.getDrawBarValue() > 0)
         {
@@ -38,37 +49,42 @@ public class PlayerMouseController : MonoBehaviour
         }
         else if (!Input.GetKey(KeyCode.Mouse0) && drawing) // disables drawing function if currently drawing
         {
-            /*Debug.Log("GetKey: " + Input.GetKey(KeyCode.Mouse0) + "\nDrawing: " + drawing);
-            // debugging code informing why the line ended
-            if (gameManager.getDrawBarValue() <= 0) 
-            {
-                Debug.Log("Draw bar depleted");
-            }
-            else if (!Input.GetKey(KeyCode.Mouse0)) 
-            {
-                Debug.Log("Mouse click lifted");
-            }
-            else 
-            {
-                Debug.Log("I don't know why, but drawing ended");
-            }*/
             OnEndDraw();
+        }
+        else if (Input.GetKeyDown(KeyCode.Mouse1)) // when right clicking, change the type of drawing material
+        {
+            typeOfWall++;
+            if (typeOfWall > typeOfWallLength) {
+                typeOfWall = 0;
+            }
+            StartCoroutine(displayWallTypeInfo());
+            //Debug.Log("Type of wall updated to " + typeOfWall);
+        }
+        if (wallTypeInfoActive) // to set wall info text next to mouse player when right clicking
+        {
+            wallTypeInfoText.transform.position = new Vector2(mainCamera.ScreenToWorldPoint(Input.mousePosition).x, mainCamera.ScreenToWorldPoint(Input.mousePosition).y);
+        }
+        else if (gameManager.getDrawBarValue() == 0 && Input.GetKeyDown(KeyCode.Mouse0))
+        {
+            StartCoroutine(displayWallTypeInfo());
+        }
+        else
+        {
+             wallTypeInfoText.transform.position = new Vector3(500,500,-1);
         }
     }
 
     private void OnStartDraw() 
     {
-        //Debug.Log("Started line");
         StartCoroutine("Drawing");
     }
 
     private void OnEndDraw() 
     {
         drawing = false;
-        //Debug.Log("ended line");
         // allows for collisions only once the line is complete
         currentLineObject.AddComponent<PlayerWall>();
-        //Debug.Log("wall script enabled");
+        currentLineObject.GetComponent<PlayerWall>().setWallType(typeOfWall); // assign the type of wall to the newly instantiated wall
     }
 
     IEnumerator Drawing()
@@ -76,7 +92,6 @@ public class PlayerMouseController : MonoBehaviour
         drawing = true;
         StartLine();
         while(drawing && gameManager.getDrawBarValue() > 0) {
-            //Debug.Log("Adding Point");
             AddPoint(GetCurrentWorldPoint());
             yield return null;
         }
@@ -112,6 +127,10 @@ public class PlayerMouseController : MonoBehaviour
         if (currentLine.Count == 1) 
         {
             Destroy(currentLineObject);
+            if (typeOfWall == 0 && gameManager.getDrawBarValue() > standardWallCost / 2)    
+                gameManager.adjustDrawBarValue(standardWallCost); // adds back draw bar value when clicking
+            else if (typeOfWall == 1 && gameManager.getDrawBarValue() > explosiveWallCost / 2)
+                gameManager.adjustDrawBarValue(explosiveWallCost);
         }
         else 
         {
@@ -131,19 +150,49 @@ public class PlayerMouseController : MonoBehaviour
     {
         if (PlacePoint(point)) {
             currentLine.Add(point);
-            gameManager.adjustDrawBarValue(-1);
+            switch (typeOfWall) // reduces draw bar by certain amounts depending on wall type
+            {
+                case 0:
+                    gameManager.adjustDrawBarValue(-standardWallCost);
+                    break;
+                case 1:
+                    gameManager.adjustDrawBarValue(-explosiveWallCost);
+                    break;
+            }
             currentLineRenderer.positionCount++;
             currentLineRenderer.SetPosition(currentLineRenderer.positionCount - 1, point);
+            
         }
     }
 
     private bool PlacePoint(Vector2 point) // places point only if certain conditions are met
     {
         if (currentLine.Count == 0) return true;
-        if (Vector2.Distance(point, currentLine[currentLine.Count - 1]) < lineSeperationDistance) return false;
+        if (Vector2.Distance(point, currentLine[currentLine.Count - 1]) < lineSeperationDistance) return false; // does not allow another point to be placed if the previous is too close
         return true;
-    } 
+    }
 
-
-
+    private IEnumerator displayWallTypeInfo() // enables wall text info for a short period of time
+    {
+        wallTypeInfoActive = true;
+        if (gameManager.getDrawBarValue() == 0) // out of draw bar indicator
+        {
+            wallTypeInfoText.text = "Draw bar empty";
+        }
+        else
+        {
+        switch (typeOfWall) //informs user of type of wall
+        {
+            case 0:
+                wallTypeInfoText.text = "Standard";
+                break;
+            case 1:
+                wallTypeInfoText.text = "Explosive";
+                break;
+        }
+        }
+        yield return new WaitForSeconds(2);
+        wallTypeInfoActive = false;
+        wallTypeInfoText.text = "";
+    }
 }

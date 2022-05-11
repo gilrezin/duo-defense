@@ -35,12 +35,20 @@ public class DefaultArrow : MonoBehaviour
     }*/
     private void OnTriggerEnter2D(Collider2D collision)
     {
+        //Debug.Log("Arrow collided with " + collision.gameObject);
         GameObject hit = collision.gameObject;
         if (hit.CompareTag("Enemy"))
         {
-            hit.GetComponent<Enemy>().DealDamage(damage * keyboardPlayer.damageX);
+            try 
+            {
+                hit.GetComponent<Enemy>().DealDamage(damage * keyboardPlayer.damageX);
+            } catch {}
         }
-        Destroy(gameObject);
+        if (!hit.gameObject.CompareTag("Money") && !hit.gameObject.CompareTag("Explosive Arrow Drop") && !hit.gameObject.CompareTag("Multi Arrow Drop") && !hit.gameObject.CompareTag("Basic Health Jug") && !hit.gameObject.CompareTag("Explosion") && !hit.gameObject.CompareTag("WallTexture"))
+        {
+            Destroy(gameObject);
+        }
+        
     }
 
 

@@ -12,6 +12,11 @@ TagManager:
   - Money
   - Wall
   - Explosive Arrow Drop
+  - Multi Arrow Drop
+  - Basic Health Jug
+  - WallTexture
+  - Undefined
+  - Explosion
   layers:
   - Default
   - TransparentFX
@@ -20,7 +25,7 @@ TagManager:
   - Water
   - UI
   - Walls
-  - 
+  - ShopDetection
   - 
   - 
   - 
@@ -48,4 +53,10 @@ TagManager:
   m_SortingLayers:
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: ShopDetection
+    uniqueID: 432699801
+    locked: 0
+  - name: ShopItems
+    uniqueID: 963648061
     locked: 0
