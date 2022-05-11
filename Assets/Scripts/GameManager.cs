@@ -51,12 +51,22 @@ public class GameManager : MonoBehaviour
     private float startTime;
 
     public GameObject tutorial;
-    
+
+    // for tutorial
+    public bool hasMoved = false;
+    public bool hasDrawn = false;
+    public bool hasSwitchedK = false;
+    public bool hasSwitchedW = false;
+    public bool hasAimed = false;
+    public bool hasFinished = false;
+    public TextMeshProUGUI tutorialText;
+
     // Start is called before the first frame update
     void Start()
     {
         //GameObject.Find("/Canvas/Tutorial").GetComponent<GameObject>().SetActive(true);
         //GameObject.Find("/Canvas/Tutorial 2").GetComponent<GameObject>().SetActive(true);
+        shop.SetActive(false);
         drawText.text = "Draw: " + drawBarValue;
         playerHealthText.text = "Health: " + playerHealth;
         keyboardPlayer = GameObject.Find("KeyboardPlayer").GetComponent<KeyboardPlayerController>();
@@ -66,6 +76,31 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (!hasMoved)
+        {
+            tutorialText.text = "Click and hold W A S D to move and shoot with space";
+        }
+        else if (!hasDrawn)
+        {
+            tutorialText.text = "Hold and move left mouse to draw";
+        }
+        else if (!hasSwitchedK)
+        {
+            tutorialText.text = "Click 2 or 3 on the keyboard to switch arrow type";
+        }
+        else if (!hasSwitchedW)
+        {
+            tutorialText.text = "Click right mouse to switch to explosive wall";
+        }
+        else if (!hasAimed)
+        {
+            tutorialText.text = "Hold shift key and use the mouse to aim";
+        }
+        else
+        {
+            tutorialText.gameObject.SetActive(false);
+        }
+        
         if (enemiesRemaining == 0)
         {
             //shop.SetActive(true);
@@ -154,7 +189,7 @@ public class GameManager : MonoBehaviour
             GameObject nextEnemy = enemies[Random.Range(minEnemy, maxEnemy)];
             enemiesInWave.Add(nextEnemy);
             currentWaveValue += nextEnemy.GetComponent<Enemy>().value;
-            numEnemies += 1;
+            numEnemies += nextEnemy.GetComponent<Enemy>().numOfEnemies;
         }
         Debug.Log("NewWave end");
 

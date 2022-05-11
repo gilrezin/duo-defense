@@ -170,6 +170,7 @@ MonoBehaviour:
   - {fileID: 4044165676922972704, guid: 807ed4da605c85f4ca11037166fa11b5, type: 3}
   - {fileID: 4395956491702496870, guid: 2bea3756e32b2c24193a8de5165e3269, type: 3}
   - {fileID: 2122067810711797794, guid: af70a6e2cd074fd42b919eb56819dbaf, type: 3}
+  numOfEnemies: 1
 --- !u!114 &8103098447865265508
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -16,6 +16,7 @@ public class Enemy : MonoBehaviour
     private GameManager gameManager;
     public List<GameObject> lootList;
     private bool hasDied = false;
+    public int numOfEnemies;
     // Start is called before the first frame update
     void Start()
     {

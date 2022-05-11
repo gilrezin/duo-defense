@@ -1,4 +1,4 @@
 repository "LTS Wave Defense@Lucky_Triangle_Studios@cloud"
   path "/"
-    smartbranch "/main/this will work"     
+    smartbranch "/main"      
      

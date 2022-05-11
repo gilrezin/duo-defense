@@ -33,6 +33,7 @@ public class KeyboardPlayerController : MonoBehaviour
     public Camera mainCamera;
     public TextMeshProUGUI outOfAmmoText; // text that appears when right clicking to change wall type
 
+    private Animator animator;
     // Start is called before the first frame update
     void Start()
     {
@@ -41,6 +42,7 @@ public class KeyboardPlayerController : MonoBehaviour
         mainCamera = GameObject.Find("Main Camera").GetComponent<Camera>();
         numOfExplosiveArrows = 5;
         numOfMultiArrows = 5;
+        animator = GameObject.Find("KeyboardPlayer/player").GetComponent<Animator>();
     }
 
     // Update is called once per frame
@@ -68,6 +70,7 @@ public class KeyboardPlayerController : MonoBehaviour
         }
         if (equippedArrow == 2 || Input.GetKeyDown(KeyCode.Alpha2))
         {
+            gameManager.hasSwitchedK = true;
             usedArrow = arrow2;
             equippedArrow = 2;
             basicSelected.gameObject.SetActive(false);
@@ -76,6 +79,7 @@ public class KeyboardPlayerController : MonoBehaviour
         }
         if (equippedArrow == 3 || Input.GetKeyDown(KeyCode.Alpha3))
         {
+            gameManager.hasSwitchedK = true;
             usedArrow = arrow3;
             equippedArrow = 3;
            basicSelected.gameObject.SetActive(false);
@@ -103,6 +107,14 @@ public class KeyboardPlayerController : MonoBehaviour
                         multiArrowCounter.text = numOfMultiArrows.ToString();
                     }
                     Instantiate(usedArrow, location, rotation);
+                    if (animator.GetInteger("AnimationState") == 2 || animator.GetInteger("AnimationState") == 4 || animator.GetInteger("AnimationState") == 6)
+                    {
+                        animator.SetInteger("AnimationState", (int)2);
+                    }
+                    else
+                    {
+                        animator.SetInteger("AnimationState", (int)1);
+                    }
                     canShoot = false;
                     StartCoroutine(shotCooldown());
                     /*if (!arrowStats.infinite)
@@ -120,6 +132,7 @@ public class KeyboardPlayerController : MonoBehaviour
             {
                 if (Input.GetKey(KeyCode.W))
                 {
+                    gameManager.hasMoved = true;
                     if (Input.GetKey(KeyCode.W) && Input.GetKey(KeyCode.A))
                     {
                         rotateAndMove(45);
@@ -130,9 +143,14 @@ public class KeyboardPlayerController : MonoBehaviour
                     {
                         rotateAndMove(0);
                     }
+                    if (animator.GetInteger("AnimationState") != 1 && animator.GetInteger("AnimationState") != 2)
+                    {
+                        animator.SetInteger("AnimationState", (int)4);
+                    }
                 }
                 else if (Input.GetKey(KeyCode.D))
                 {
+                    gameManager.hasMoved = true;
                     if (!Input.GetKey(KeyCode.S))
                     {
                         rotateAndMove(270);
@@ -141,9 +159,14 @@ public class KeyboardPlayerController : MonoBehaviour
                     {
                         rotateAndMove(225);
                     }
+                    if (animator.GetInteger("AnimationState") != 1 && animator.GetInteger("AnimationState") != 2)
+                    {
+                        animator.SetInteger("AnimationState", (int)4);
+                    }
                 }
                 else if (Input.GetKey(KeyCode.S))
                 {
+                    gameManager.hasMoved = true;
                     if (Input.GetKey(KeyCode.S) && Input.GetKey(KeyCode.A))
                     {
                         rotateAndMove(135);
@@ -152,11 +175,45 @@ public class KeyboardPlayerController : MonoBehaviour
                     {
                         rotateAndMove(180);
                     }
+                    if (animator.GetInteger("AnimationState") != 1 && animator.GetInteger("AnimationState") != 2)
+                    {
+                        animator.SetInteger("AnimationState", (int)3);
+                    }
                 }
                 else if (Input.GetKey(KeyCode.A))
                 {
+                    gameManager.hasMoved = true;
                     rotateAndMove(90);
-                } 
+                    if (animator.GetInteger("AnimationState") != 1 && animator.GetInteger("AnimationState") != 2)
+                    {
+                        animator.SetInteger("AnimationState", (int)3);
+                    }
+                    
+                }
+
+                else
+                {
+                    if (animator.GetInteger("AnimationState") != 1 && animator.GetInteger("AnimationState") != 2)
+                    {
+                        if (animator.GetInteger("AnimationState") == 3 || animator.GetInteger("AnimationState") == 5)
+                        {
+                            animator.SetInteger("AnimationState", (int)5);
+                        }
+                        else
+                        {
+                            animator.SetInteger("AnimationState", (int)6);
+                        }
+                        
+                    }
+                }
+                if (Input.GetKey(KeyCode.Mouse0))
+                {
+                    gameManager.hasDrawn = true;
+                }
+                if (Input.GetKey(KeyCode.Mouse1))
+                {
+                    gameManager.hasSwitchedW = true;
+                }
             }
             else
             {
@@ -236,6 +293,7 @@ public class KeyboardPlayerController : MonoBehaviour
                 }
                 else
                 {
+                    gameManager.hasAimed = true;
                     float rotation = -(Mathf.Atan(changeInX / changeInY) * Mathf.Rad2Deg) - 180;
                     gameObject.transform.eulerAngles = new Vector3(0, 0, rotation);
                 }
@@ -270,7 +328,14 @@ public class KeyboardPlayerController : MonoBehaviour
     IEnumerator shotCooldown()
     {
         yield return new WaitForSeconds(bowStats.speed);
-
+        if (animator.GetInteger("AnimationState") == 2 || animator.GetInteger("AnimationState") == 4 || animator.GetInteger("AnimationState") == 6)
+        {
+            animator.SetInteger("AnimationState", (int)6);
+        }
+        else
+        {
+            animator.SetInteger("AnimationState", (int)5);
+        }
         canShoot = true;
     }
 

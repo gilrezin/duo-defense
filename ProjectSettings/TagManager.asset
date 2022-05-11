@@ -26,6 +26,9 @@ TagManager:
   - UI
   - Walls
   - ShopDetection
+  - ShopShelves
+  - Items
+  - cantAfford
   - 
   - 
   - 
@@ -35,10 +38,7 @@ TagManager:
   - 
   - 
   - 
-  - 
-  - 
-  - 
-  - 
+  - MousePlayer
   - 
   - 
   - 
@@ -59,4 +59,10 @@ TagManager:
     locked: 0
   - name: ShopItems
     uniqueID: 963648061
+    locked: 0
+  - name: Items
+    uniqueID: 1456077161
+    locked: 0
+  - name: Mouse Player
+    uniqueID: 1303958301
     locked: 0
