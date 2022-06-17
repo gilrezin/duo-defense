@@ -6,6 +6,9 @@ public class DroppedItem : MonoBehaviour
 {
     public GameManager gameManager;
     public KeyboardPlayerController keyboardPlayerControllerScript;
+
+    //SFX
+    public AudioSource pickup;
     // Start is called before the first frame update
     void Start()
     {
@@ -24,6 +27,7 @@ public class DroppedItem : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Player")) 
         {
+            pickup.Play();
             if (gameObject.CompareTag("Money"))
             {
                 gameManager.UpdateMoney(1);

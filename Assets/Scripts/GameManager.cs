@@ -12,10 +12,9 @@ public class GameManager : MonoBehaviour
     public List<GameObject> enemiesInWave = new List<GameObject>();
     public List<GameObject> enemies = new List<GameObject>();
 
-    public GameObject shop;
-
     private KeyboardPlayerController keyboardPlayer;
     private PlayerMouseController mousePlayer;
+    private TowerController towerControl;
 
     public int money = 100000;
     private int playerHealth = 50; // starting health for the players (health bar is shared)
@@ -45,6 +44,11 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI goldText;
     public TextMeshProUGUI waveCount;
     public TextMeshProUGUI enemiesRemainingCount;
+    public TextMeshProUGUI nextWaveKeyboard;
+    public TextMeshProUGUI nextWaveMouse;
+
+    public bool keyboardReady = false;
+    public bool mouseReady = false;
 
     // for temporary damage boost
     private bool explosiveArrowDone = false;
@@ -52,62 +56,102 @@ public class GameManager : MonoBehaviour
 
     public GameObject tutorial;
 
+    public int discountMult = 15;
+    public bool discount;
+
     // for tutorial
-    public bool hasMoved = false;
+    public int tutorialStage = 1;
+    /*public bool hasMoved = false;
+    public bool hasShotArrow = false;
     public bool hasDrawn = false;
     public bool hasSwitchedK = false;
     public bool hasSwitchedW = false;
-    public bool hasAimed = false;
+    public bool hasAimed = false;*/
     public bool hasFinished = false;
-    public TextMeshProUGUI tutorialText;
+    //public TextMeshProUGUI tutorialText;
+    public GameObject skipTutorialText;
+
+    public bool discounted = false;
+    public bool playersStunned = false; // for temporarily pausing players when out of health
+
+    // SFX
+    public AudioSource generalSFX;
+    public AudioClip playerStun;
+    public AudioClip gameOverSFX;
+    public AudioClip outOfDrawBar;
+
+    public bool canNoDrawBar;
 
     // Start is called before the first frame update
     void Start()
     {
         //GameObject.Find("/Canvas/Tutorial").GetComponent<GameObject>().SetActive(true);
         //GameObject.Find("/Canvas/Tutorial 2").GetComponent<GameObject>().SetActive(true);
-        shop.SetActive(false);
         drawText.text = "Draw: " + drawBarValue;
         playerHealthText.text = "Health: " + playerHealth;
         keyboardPlayer = GameObject.Find("KeyboardPlayer").GetComponent<KeyboardPlayerController>();
         mousePlayer = GameObject.Find("MousePlayer").GetComponent<PlayerMouseController>();
+        towerControl = GameObject.Find("Tower").GetComponent<TowerController>();
+        skipTutorialText.SetActive(true);
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (!hasMoved)
-        {
-            tutorialText.text = "Click and hold W A S D to move and shoot with space";
+        if (wave == 0) { // tutorial
+            switch (tutorialStage)
+            {
+                case 1: // display WASD tutorial
+                    tutorial.transform.position = new Vector3(0, 1.06f, 0);
+                    tutorial.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("Tutorial1");
+                    break;
+                case 2: // display shooting tutorial
+                    tutorial.transform.position = new Vector3(-5.5f, 1.06f, 0);
+                    tutorial.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("Tutorial2");
+                    break;   
+                case 3: // display drawing tutorial
+                    tutorial.transform.position = new Vector3(5.5f, 1.06f, 0);
+                    tutorial.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("Tutorial3");   
+                    break;    
+                case 4: // display arrow switching tutorial
+                    tutorial.transform.position = new Vector3(-5.29f, -0.82f, 0);
+                    tutorial.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("Tutorial4");
+                    break;   
+                case 5: // display wall switching tutorial
+                    tutorial.transform.position = new Vector3(5.5f, 1.06f, 0);
+                    tutorial.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("Tutorial5");
+                    break;   
+                case 6: // display cooperative aiming tutorial
+                    tutorial.transform.position = new Vector3(-5.5f, 1.06f, 0);
+                    tutorial.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("Tutorial6");
+                    break;
+                case 7: // display shop opening tutorial
+                    tutorial.transform.position = new Vector3(0, 1.8f, 0);
+                    tutorial.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("Tutorial7");
+                    break;
+                case 8:
+                    tutorial.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("Tutorial8");
+                    skipTutorialText.gameObject.transform.position = new Vector3(0, -4, 0);
+                    break;
+                case 9:
+                    tutorial.transform.position = new Vector3(0, -2.6f, 0);
+                    tutorial.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("Tutorial9");
+                    skipTutorialText.SetActive(false);
+                    break;
+
+            }
         }
-        else if (!hasDrawn)
+        else 
         {
-            tutorialText.text = "Hold and move left mouse to draw";
-        }
-        else if (!hasSwitchedK)
-        {
-            tutorialText.text = "Click 2 or 3 on the keyboard to switch arrow type";
-        }
-        else if (!hasSwitchedW)
-        {
-            tutorialText.text = "Click right mouse to switch to explosive wall";
-        }
-        else if (!hasAimed)
-        {
-            tutorialText.text = "Hold shift key and use the mouse to aim";
-        }
-        else
-        {
-            tutorialText.gameObject.SetActive(false);
+            tutorial.SetActive(false);
+            skipTutorialText.SetActive(false);
         }
         
-        if (enemiesRemaining == 0)
-        {
-            //shop.SetActive(true);
-            
-        }
-        else if (playerHealth <= 0) {
-            GameOver();
+        if (playerHealth <= 0 && !playersStunned) {
+            StartCoroutine(StunPlayers());
+            playersStunned = true;
+            generalSFX.clip = playerStun;
+            generalSFX.Play();
         }
 
         if (drawBarValue < 0) // resets draw bar if value dips below 0
@@ -117,7 +161,7 @@ public class GameManager : MonoBehaviour
         }
 
         waveCount.text = "Wave: " + wave;
-        enemiesRemainingCount.text = "Enemies Remaining: " + enemiesRemaining;
+        enemiesRemainingCount.text = "Enemies: " + enemiesRemaining;
         goldText.text = "Gold: " + money;
 
         if (Input.GetKeyDown(KeyCode.P)) // devtool to spawn in enemies
@@ -131,6 +175,19 @@ public class GameManager : MonoBehaviour
             adjustDrawBarValue(1000);
         }
 
+        KeyboardReadyUp();
+
+        if (drawBarValue == 0 && canNoDrawBar)
+        {
+            generalSFX.clip = outOfDrawBar;
+            generalSFX.Play();
+            canNoDrawBar = false;
+        }
+
+        if(drawBarValue > 0)
+        {
+            canNoDrawBar = true;
+        }
     }
 
 
@@ -146,6 +203,11 @@ public class GameManager : MonoBehaviour
 
     public int getDrawBarValue() {
         return drawBarValue;
+    }
+
+    public void adjustMaxDraw(int num)
+    {
+        drawBarMaxValue += num;
     }
 
     public void adjustHealthValue(int value) { // modifies the player health value by a given amount
@@ -169,16 +231,25 @@ public class GameManager : MonoBehaviour
     // creates a list of enemeis to be spawned in the next wave
     public void NewWave()
     {
+        keyboardReady = false;
+        mouseReady = false;
+        nextWaveKeyboard.text = "NextWave\n(Enter key)";
+        nextWaveMouse.text = "NextWave\n(Click)";
+        towerControl.ShopReset();
         tutorial.SetActive(false);
-        shop.SetActive(false);
+        towerControl.mouseNextWave.SetActive(false);
+        towerControl.keyboardNextWave.SetActive(false);
+        discount = true;
         //GameObject.Find("/Canvas/Tutorial").GetComponent<GameObject>().SetActive(false);
         //GameObject.Find("/Canvas/Tutorial 2").GetComponent<GameObject>().SetActive(false);
         wave += 1;
         numEnemies = 0;
         currentWaveValue = 0;
         waveValueCap = (wave * ((wave - 1) / 2)) + 10;
-        Debug.Log("NewWave start");
-        
+        //Debug.Log("NewWave start");
+
+        towerControl.addItem(wave);
+
         if(wave <= 10 && wave % 2 == 0 && maxEnemy != enemies.Count)
         {
             maxEnemy += 1;
@@ -191,7 +262,7 @@ public class GameManager : MonoBehaviour
             currentWaveValue += nextEnemy.GetComponent<Enemy>().value;
             numEnemies += nextEnemy.GetComponent<Enemy>().numOfEnemies;
         }
-        Debug.Log("NewWave end");
+        //Debug.Log("NewWave end");
 
         StartCoroutine(SpawnEnemyInWave());
     }
@@ -253,6 +324,8 @@ public class GameManager : MonoBehaviour
     {
         isGameOver = true;
         gameOverScreenCanvas.SetActive(true);
+        generalSFX.clip = gameOverSFX;
+        generalSFX.Play();
     }
 
     public bool IsGameOver()
@@ -289,7 +362,7 @@ public class GameManager : MonoBehaviour
 
     public void RestartGame()
     {
-        SceneManager.LoadScene("SampleScene");
+        SceneManager.LoadScene("Game");
     }
 
     public float TempDamageMonitor ()
@@ -323,5 +396,57 @@ public class GameManager : MonoBehaviour
     public void ButtonTest()
     {
         Debug.Log("Test");
+    }
+
+    public void MouseReadyUp()
+    {
+        if (!mouseReady)
+        {
+            mouseReady = true;
+            nextWaveMouse.text = "Mouse Ready";
+            if (keyboardReady)
+            {
+                NewWave();
+            }
+        }
+        else
+        {
+            nextWaveMouse.text = "NextWave\n(Click)";
+            mouseReady = false;
+        }
+
+    }
+
+    public void KeyboardReadyUp()
+    {
+        if (Input.GetKeyDown(KeyCode.Return) && towerControl.keyboardNextWave)
+        {
+            if (!keyboardReady)
+            {
+                keyboardReady = true;
+                nextWaveKeyboard.text = "Keyboard Ready";
+                if (mouseReady)
+                {
+                    NewWave();
+                }
+            }
+            else
+            {
+                nextWaveKeyboard.text = "NextWave\n(Enter key)";
+                keyboardReady = false;
+            }
+        }
+    }
+
+     public IEnumerator StunPlayers()
+    {
+        WaitForSecondsRealtime wait = new WaitForSecondsRealtime((float) 5 / maxPlayerHealth); // recovery time is always 5 seconds
+        for (int i = 0; i <= maxPlayerHealth; i++)
+        {
+            //Debug.Log(Time.time);
+            adjustHealthValue(1);
+            yield return wait;
+        }
+        playersStunned = false;
     }
 }

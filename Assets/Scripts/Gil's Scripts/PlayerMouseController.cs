@@ -15,6 +15,7 @@ public class PlayerMouseController : MonoBehaviour
     private Color lineColor = Color.black;
     [SerializeField]
     private int lineCapVertices = 5;
+    public Material drawingMaterial;
     public GameManager gameManager;
     private GameObject currentLineObject;
     private List<GameObject> lines;
@@ -34,14 +35,31 @@ public class PlayerMouseController : MonoBehaviour
 
     private Camera mainCamera;
 
+    //SFX
+    public AudioSource mouseSFX;
+    public AudioClip wallBuild;
+
     private void Awake() 
     {
         mainCamera = Camera.main;
+        StartCoroutine(CreatePolygonCollider());
     }
 
     private void Update()
     {
-        mouseIcon.transform.position = new Vector3(mainCamera.ScreenToWorldPoint(Input.mousePosition).x, mainCamera.ScreenToWorldPoint(Input.mousePosition).y, -1);
+        if (!gameManager.playersStunned) // mouse cannot move if health is recharging after it reached 0
+        {
+            try
+            {
+                mouseIcon.GetComponent<PolygonCollider2D>().enabled = true;
+            }
+            catch { }
+            mouseIcon.transform.position = new Vector3(mainCamera.ScreenToWorldPoint(Input.mousePosition).x, mainCamera.ScreenToWorldPoint(Input.mousePosition).y, -1);
+        }
+        else
+        {
+            mouseIcon.GetComponent<PolygonCollider2D>().enabled = false;
+        }
         // if the mouse is pressed down and there exists some draw value, then create a new brush instance
         if (Input.GetKeyDown(KeyCode.Mouse0) && gameManager.getDrawBarValue() > 0)
         {
@@ -54,7 +72,8 @@ public class PlayerMouseController : MonoBehaviour
         else if (Input.GetKeyDown(KeyCode.Mouse1)) // when right clicking, change the type of drawing material
         {
             typeOfWall++;
-            if (typeOfWall > typeOfWallLength) {
+            if (typeOfWall > typeOfWallLength)
+            {
                 typeOfWall = 0;
             }
             StartCoroutine(displayWallTypeInfo());
@@ -70,10 +89,10 @@ public class PlayerMouseController : MonoBehaviour
         }
         else
         {
-             wallTypeInfoText.transform.position = new Vector3(500,500,-1);
+            wallTypeInfoText.transform.position = new Vector3(500, 500, -1);
         }
-    }
 
+    }
     private void OnStartDraw() 
     {
         StartCoroutine("Drawing");
@@ -85,6 +104,9 @@ public class PlayerMouseController : MonoBehaviour
         // allows for collisions only once the line is complete
         currentLineObject.AddComponent<PlayerWall>();
         currentLineObject.GetComponent<PlayerWall>().setWallType(typeOfWall); // assign the type of wall to the newly instantiated wall
+        mouseSFX.clip = wallBuild;
+        mouseSFX.Play();
+        //Debug.Log("SFX");
     }
 
     IEnumerator Drawing()
@@ -94,7 +116,7 @@ public class PlayerMouseController : MonoBehaviour
         while(drawing && gameManager.getDrawBarValue() > 0) {
             AddPoint(GetCurrentWorldPoint());
             yield return null;
-        }
+        } 
         EndLine();
     }
 
@@ -116,7 +138,8 @@ public class PlayerMouseController : MonoBehaviour
         currentLineRenderer.startWidth = lineWidth;
         currentLineRenderer.endWidth = lineWidth;
         currentLineRenderer.numCapVertices = lineCapVertices;
-        currentLineRenderer.material = new Material (Shader.Find("Particles/Standard Unlit"));
+        //currentLineRenderer.material = new Material (Shader.Find("Particles/Standard Unlit"));
+        currentLineRenderer.material = drawingMaterial;
         currentLineRenderer.startColor = lineColor;
         currentLineRenderer.endColor = lineColor;
         currentLineEdgeCollider.edgeRadius = 0.1f;
@@ -131,12 +154,15 @@ public class PlayerMouseController : MonoBehaviour
                 gameManager.adjustDrawBarValue(standardWallCost); // adds back draw bar value when clicking
             else if (typeOfWall == 1 && gameManager.getDrawBarValue() > explosiveWallCost / 2)
                 gameManager.adjustDrawBarValue(explosiveWallCost);
+            
         }
         else 
         {
             currentLineEdgeCollider.SetPoints(currentLine);
             //Debug.Log("GetKeyDown: " + Input.GetKeyDown(KeyCode.Mouse0) + "\nGetKey: " + Input.GetKey(KeyCode.Mouse0));
+            
         }
+
         
 
     }
@@ -194,5 +220,12 @@ public class PlayerMouseController : MonoBehaviour
         yield return new WaitForSeconds(2);
         wallTypeInfoActive = false;
         wallTypeInfoText.text = "";
+    }
+
+    private IEnumerator CreatePolygonCollider()
+    {
+        yield return new WaitForSeconds(1);
+        mouseIcon.AddComponent<PolygonCollider2D>();
+        
     }
 }

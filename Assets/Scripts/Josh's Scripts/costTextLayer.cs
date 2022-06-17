@@ -8,16 +8,16 @@ public class CostTextLayer : MonoBehaviour
 
     public TextMeshProUGUI text;
     // Start is called before the first frame update
-    void Start()
+    void Awake()
     {
-        text.GetComponent<Renderer>().sortingLayerName = "Items";
-        text.GetComponent<Renderer>().sortingOrder = -1;
+        text.GetComponent<Renderer>().sortingLayerName = "CostText";
+        text.GetComponent<Renderer>().sortingOrder = 1;
 
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        text.GetComponent<Renderer>().sortingLayerName = "CostText";
     }
 }

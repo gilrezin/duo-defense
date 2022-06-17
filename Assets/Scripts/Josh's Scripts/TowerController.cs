@@ -17,7 +17,9 @@ public class TowerController : MonoBehaviour
     public GameObject mouseShop;
     public bool mShop = false;
     public GameObject[,] keyboardItems;
+    public GameObject[] allKeyboardItems;
     public GameObject[,] mouseItems;
+    public GameObject[] allMouseItems;
     public int shopSize = 2;
 
     public Animator cantAffordAnimator1;
@@ -36,6 +38,9 @@ public class TowerController : MonoBehaviour
 
     public int kItemsCap;
     public int mItemsCap;
+
+    public GameObject mouseCostText;
+    public GameObject keyboardCostText;
 
     public List<GameObject> kItems = new List<GameObject>();
     public List<GameObject> mItems = new List<GameObject>();
@@ -56,6 +61,10 @@ public class TowerController : MonoBehaviour
 
     public bool hideItemsK = true;
     public bool hideItemsM = true;
+
+    //SFX
+    public AudioSource shopSFX;
+    public AudioClip openCloseSFX;
     // Start is called before the first frame update
     void Start()
     {
@@ -76,6 +85,9 @@ public class TowerController : MonoBehaviour
 
         keyboardShop.SetActive(false);
         mouseShop.SetActive(false);
+        keyboardCostText.SetActive(false);
+        mouseCostText.SetActive(false);
+        ShopReset();
     }
 
     // Update is called once per frame
@@ -86,11 +98,17 @@ public class TowerController : MonoBehaviour
             keyboardShop.SetActive(true);
             kShop = true;
             hideItemsK = false;
+            keyboardCostText.SetActive(true);
+            shopSFX.Play();
         } else if (Input.GetMouseButtonDown(2) && kShop)
         {
             keyboardShop.SetActive(false);
             kShop = false;
             hideItemsK = true;
+            keyboardCostText.SetActive(false);
+            shopSFX.Play();
+            keyboardNextWave.transform.position = new Vector3(keyboardNextWave.transform.position.x, -1, 0);
+            mouseNextWave.transform.position = new Vector3(mouseNextWave.transform.position.x, -1, 0);
         }
 
         if (Input.GetKeyDown(KeyCode.E) && !mShop && !kShop)
@@ -98,11 +116,17 @@ public class TowerController : MonoBehaviour
             mouseShop.SetActive(true);
             mShop = true;
             hideItemsM = false;
+            mouseCostText.SetActive(true);
+            shopSFX.Play();
         } else if (Input.GetKeyDown(KeyCode.E) && mShop)
         {
             mouseShop.SetActive(false);
             mShop = false;
             hideItemsM = true;
+            mouseCostText.SetActive(false);
+            shopSFX.Play();
+            keyboardNextWave.transform.position = new Vector3(keyboardNextWave.transform.position.x, -1, 0);
+            mouseNextWave.transform.position = new Vector3(mouseNextWave.transform.position.x, -1, 0);
         }
 
         if (Input.GetKey(KeyCode.R) && canReset)
@@ -129,6 +153,20 @@ public class TowerController : MonoBehaviour
         {
             toolTipBox.SetActive(false);
         } 
+
+        if (gameManager.enemiesRemaining == 0)
+        {
+            keyboardNextWave.SetActive(true);
+            mouseNextWave.SetActive(true);
+        }
+    }
+
+    public void RemoveNonComsumableK(int index)
+    {
+        if (index == 1)
+        {
+            kItems.RemoveAt(1);
+        }
     }
 
     public void TakeDamage(float damage)
@@ -167,7 +205,7 @@ public class TowerController : MonoBehaviour
     // fills the shop with items
     IEnumerator ShopFill()
     {
-        Debug.Log("fill");
+        //Debug.Log("fill");
         yield return new WaitForSeconds(0.0001f);
 
         // does not destroy the items
@@ -180,14 +218,14 @@ public class TowerController : MonoBehaviour
         GameObject currentShelfK;
         GameObject currentShelfM;
         // loops through each shelf for the keyboard shop
-        for (int i = 0; i < kItems.Count; i++)
+        for (int i = 0; i < shopSize; i++)
         {
-            for (int k = 0; k < kItems.Count; k++)
+            for (int k = 0; k < shopSize; k++)
             {
                 shelfPosNumK += 1;
-                Debug.Log("ItemSpawned");
+                //Debug.Log("ItemSpawned");
                 // choses random item 
-                keyboardItems[i, k] = kItems[Random.Range(0, kItemsCap)];
+                keyboardItems[i, k] = kItems[k];
                 int spawnX = i + 1;
                 int spawnY = k;
                 Vector3 spawnPos = new Vector3(spawnX, spawnY, 2);
@@ -210,14 +248,14 @@ public class TowerController : MonoBehaviour
         }
 
         // loops through each shelf for the mouse shop
-        for (int i = 0; i < mItems.Count; i++)
+        for (int i = 0; i < shopSize; i++)
         {
-            for (int m = 0; m < mItems.Count; m++)
+            for (int m = 0; m < shopSize; m++)
             {
                 shelfPosNumM += 1;
-                Debug.Log("ItemSpawnedMouse");
+                //Debug.Log("ItemSpawnedMouse");
                 // choses random item 
-                mouseItems[i, m] = mItems[Random.Range(0, mItemsCap)];
+                mouseItems[i, m] = mItems[m];
                 int spawnX = i + 1 - 3;
                 int spawnY = m;
                 Vector3 spawnPos = new Vector3(spawnX, spawnY, 2);
@@ -228,16 +266,16 @@ public class TowerController : MonoBehaviour
 
                 // links item to shelf
                 currentShelfM = mouseShelves[i, m];
-                Debug.Log("set shelf mouse");
+                //Debug.Log("set shelf mouse");
                 currentShelfM.GetComponent<KeyboardShelf>().item = nextItemM;
-                Debug.Log("set item mouse");
+                //Debug.Log("set item mouse");
                 currentShelfM.GetComponent<KeyboardShelf>().item.GetComponent<GeneralItem>().shelfNum = shelfPosNumM;
                 currentShelfM.GetComponent<KeyboardShelf>().setScript();
 
                 // sets cost text
                 TextMeshProUGUI costText = currentShelfM.GetComponent<KeyboardShelf>().costText;
                 costText.text = currentShelfM.GetComponent<KeyboardShelf>().item.GetComponent<GeneralItem>().cost.ToString();
-                Debug.Log("sucessful mouse loop");
+                //Debug.Log("sucessful mouse loop");
             }
         }
     }
@@ -250,10 +288,12 @@ public class TowerController : MonoBehaviour
             if (shelf == 1)
             {
                 cantAffordAnimator1.SetTrigger("cantAfford");
+                //Debug.Log("cantAfford1");
             }
             else if (shelf == 2)
             {
                 cantAffordAnimator2.SetTrigger("cantAfford");
+                //Debug.Log("cantAfford2");
             }
             else if (shelf == 3)
             {
@@ -290,7 +330,7 @@ public class TowerController : MonoBehaviour
     void MouseShopControl()
     {
 
-        if (Input.GetKeyDown(KeyCode.RightArrow))
+        if (Input.GetKeyDown(KeyCode.D))
         {
             if (selectedShelf == mouseShelves[0, 0] || selectedShelf == mouseShelves[0, 1])
             {
@@ -308,7 +348,7 @@ public class TowerController : MonoBehaviour
                 }
             }
         }
-        else if (Input.GetKeyDown(KeyCode.LeftArrow))
+        else if (Input.GetKeyDown(KeyCode.A))
         {
             if (selectedShelf == mouseShelves[1, 0] || selectedShelf == mouseShelves[1, 1])
             {
@@ -326,7 +366,7 @@ public class TowerController : MonoBehaviour
                 }
             }
         }
-        else if (Input.GetKeyDown(KeyCode.UpArrow))
+        else if (Input.GetKeyDown(KeyCode.W))
         {
             if (selectedShelf == mouseShelves[0, 0] || selectedShelf == mouseShelves[1, 0])
             {
@@ -344,7 +384,7 @@ public class TowerController : MonoBehaviour
                 }
             }
         }
-        else if (Input.GetKeyDown(KeyCode.DownArrow))
+        else if (Input.GetKeyDown(KeyCode.S))
         {
             if (selectedShelf == mouseShelves[0, 1] || selectedShelf == mouseShelves[1, 1])
             {
@@ -365,10 +405,18 @@ public class TowerController : MonoBehaviour
 
         if (Input.GetKeyUp(KeyCode.Space)) {
             selectedShelf.GetComponent<KeyboardShelf>().OnClick();
-            Debug.Log("pressed");
+            //Debug.Log("pressed");
         }
 
     }   
+
+    public void addItem(int wave)
+    {
+        if (wave == 2)
+        {
+            kItems.Add(allKeyboardItems[2]);
+        }
+    }
 
 }
 

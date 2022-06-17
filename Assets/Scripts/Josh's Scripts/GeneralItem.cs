@@ -14,14 +14,15 @@ public class GeneralItem : MonoBehaviour
     public bool kItem;
     public bool mItem;
 
+    public bool consumable;
+
     public string toolTip;
     public float textSize;
 
     public string title;
 
-    public bool discount;
-    bool discounted;
-    public int discountMult = 2;
+    public bool discounted;
+    public int discountMult = 30;
 
     public int itemIndex;
     private GameObject item;
@@ -29,6 +30,11 @@ public class GeneralItem : MonoBehaviour
     public int originalCost;
     private bool inPosK = true;
     private bool inPosM = true;
+
+    //SFX
+    public AudioSource itemSFX;
+    public AudioClip buyItem;
+    public AudioClip cantAffordSFX;
     // Start is called before the first frame update
     void Start()
     {
@@ -67,29 +73,32 @@ public class GeneralItem : MonoBehaviour
             inPosM = true;
         }
 
-        if (gameManage.enemiesRemaining == 0)
+        if (gameManage.discount && !discounted)
         {
-            if (!discounted)
-            {
-                discounted = false;
-                discount = false;
-                cost *= 3 / discountMult;
-            }
-            
-        } else
+            Discount();
+        }
+
+         if (gameManage.enemiesRemaining == 0)
         {
-            discount = true;
-            discounted = true;
+            discounted = false;
             cost = originalCost;
         }
 
+    }
+
+    public void Discount()
+    {
+        cost *= 4;
+        cost /= 5;
+        discounted = true;
     }
 
     public void OnBuy()
     {
         if ( gameManage.money >= cost)
         {
-
+            itemSFX.clip = buyItem;
+            itemSFX.Play();
             gameManage.money -= cost;
 
             if (kItem)
@@ -101,6 +110,20 @@ public class GeneralItem : MonoBehaviour
                 else if (itemIndex == 1)
                 {
                     keyboardPlayer.bow = GameObject.Find("/Bows/ShortBow");
+                    for (int k = 0; k < tower.kItems.Count; k++)
+                    {
+                        //Debug.Log("check: " + k);
+                        if (tower.kItems[0] == GameObject.Find("/Bows/ShortBow"))
+                        {
+                            tower.kItems.RemoveAt(k);
+                            //Debug.Log("Remove");
+                        }
+                    }
+
+                }
+                else if (itemIndex == 2)
+                {
+                    keyboardPlayer.numOfMultiArrows += 10;
                 }
             }
             else if (mItem)
@@ -108,7 +131,7 @@ public class GeneralItem : MonoBehaviour
                 if (itemIndex == 0)
                 {
                     gameManage.adjustMaxDraw(20);
-                    gameManage.adjustDrawBarValue(40);
+                    gameManage.adjustDrawBarValue(20);
                 }
                 else if (itemIndex == 1)
                 {
@@ -120,6 +143,8 @@ public class GeneralItem : MonoBehaviour
         else
         {
             tower.CantAfford(shelfNum, kItem);
+            itemSFX.clip = cantAffordSFX;
+            itemSFX.Play();
         }
 
     }

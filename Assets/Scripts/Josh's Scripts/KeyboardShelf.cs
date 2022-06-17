@@ -34,6 +34,17 @@ public class KeyboardShelf : MonoBehaviour
         {
             shelfOutline.SetActive(false);
         }
+
+        if (towerControl.mShop && itemScript.mItem || towerControl.kShop && itemScript.kItem)
+        {
+            costText.enabled = true;
+        } else
+        {
+            costText.enabled = false;
+        }
+
+        costText.text = itemScript.cost.ToString();
+
     }
 
     public void setScript()
@@ -44,7 +55,7 @@ public class KeyboardShelf : MonoBehaviour
     public void OnClick()
     {
         itemScript.OnBuy();
-        Debug.Log("clicked");
+        //Debug.Log("clicked");
     }
 
     public void outlineOn()

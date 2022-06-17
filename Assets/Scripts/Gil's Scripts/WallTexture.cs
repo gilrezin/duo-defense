@@ -17,6 +17,7 @@ public class WallTexture : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        Physics2D.IgnoreCollision(GameObject.Find("KeyboardPlayer").GetComponent<Collider2D>(), gameObject.GetComponent<Collider2D>());
         wallImage = GetComponent<SpriteRenderer>();
         transform.localScale = new Vector3(6,6,1);
         //transform.position = new Vector3(transform.position.x, transform.position.y, -1);

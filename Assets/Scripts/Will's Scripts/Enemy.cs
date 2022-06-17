@@ -17,6 +17,14 @@ public class Enemy : MonoBehaviour
     public List<GameObject> lootList;
     private bool hasDied = false;
     public int numOfEnemies;
+    public AudioSource enemySFX;
+    public AudioClip playerTakeDamage;
+    public AudioClip enemyTakeDamage;
+    public AudioClip enemyDeath;
+    public AudioClip wallDamage;
+    public GameObject hurtPlayerParticles;
+    public GameObject hurtParticles;
+    public GameObject damageWallParticles;
     // Start is called before the first frame update
     void Start()
     {
@@ -36,6 +44,7 @@ public class Enemy : MonoBehaviour
     {
         bool usedRearm = false;
         health = health - damage;
+        Instantiate(hurtParticles, transform.position, Quaternion.identity);
         if (health <= 0)
         {
             if (hasDied == false)
@@ -44,7 +53,7 @@ public class Enemy : MonoBehaviour
                 hasDied = true;
             }
             
-            int r = Random.Range(2, 5);
+            int r = Random.Range(1, 3);
             for (int i = 0; i < r; i++)
             {
                 GameObject loot = lootList[Random.Range(0, lootList.Count)];
@@ -64,7 +73,7 @@ public class Enemy : MonoBehaviour
                 
             }
             GameObject.Find("GameManager").GetComponent<GameManager>().adjustDrawBarValue(resourceRefill);
-
+            
             Die();
 
         }
@@ -74,6 +83,10 @@ public class Enemy : MonoBehaviour
     {
         gameManager.adjustHealthValue(-1);
         gameObject.GetComponent<Rigidbody2D>().AddRelativeForce(Vector2.down * pushbackForce * 0.5f);
+        enemySFX.clip = enemyTakeDamage;
+        enemySFX.Play();
+        Instantiate(hurtPlayerParticles, transform.position, Quaternion.identity);
+
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -82,13 +95,18 @@ public class Enemy : MonoBehaviour
         if (hit.CompareTag("Tower")) // enemy damages tower
         {
             hit.GetComponent<TowerController>().TakeDamage(damage);
-
+            enemySFX.clip = wallDamage;
+            enemySFX.Play();
+            Instantiate(damageWallParticles, transform.position, Quaternion.identity);
 
             gameObject.GetComponent<Rigidbody2D>().AddRelativeForce(Vector2.down * pushbackForce);
         }
         else if (hit.CompareTag("Wall")) // Enemy breaks wall
         {
            gameObject.GetComponent<Rigidbody2D>().AddRelativeForce(Vector2.down * pushbackForce);
+           enemySFX.clip = wallDamage;
+           enemySFX.Play();
+           Instantiate(damageWallParticles, transform.position, Quaternion.identity);
         }
         else if (collision.gameObject.CompareTag("Player")) // Keyboard player takes damage
         {
@@ -98,7 +116,8 @@ public class Enemy : MonoBehaviour
 
     public void Die()
     {
-        
+        enemySFX.clip = enemyDeath;
+        enemySFX.Play();
         //Debug.Log("EnemyDestroyed");
         Destroy(gameObject);
     }

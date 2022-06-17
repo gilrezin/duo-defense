@@ -44,7 +44,7 @@ public class DefaultArrow : MonoBehaviour
                 hit.GetComponent<Enemy>().DealDamage(damage * keyboardPlayer.damageX);
             } catch {}
         }
-        if (!hit.gameObject.CompareTag("Money") && !hit.gameObject.CompareTag("Explosive Arrow Drop") && !hit.gameObject.CompareTag("Multi Arrow Drop") && !hit.gameObject.CompareTag("Basic Health Jug") && !hit.gameObject.CompareTag("Explosion") && !hit.gameObject.CompareTag("WallTexture"))
+        if (!hit.gameObject.CompareTag("Money") && !hit.gameObject.CompareTag("Explosive Arrow Drop") && !hit.gameObject.CompareTag("Multi Arrow Drop") && !hit.gameObject.CompareTag("Basic Health Jug") && !hit.gameObject.CompareTag("Explosion") && !hit.gameObject.CompareTag("WallTexture") && !hit.gameObject.CompareTag("Player") && !hit.gameObject.CompareTag("Arrow"))
         {
             Destroy(gameObject);
         }

@@ -17,6 +17,7 @@ TagManager:
   - WallTexture
   - Undefined
   - Explosion
+  - Reticle
   layers:
   - Default
   - TransparentFX
@@ -62,6 +63,9 @@ TagManager:
     locked: 0
   - name: Items
     uniqueID: 1456077161
+    locked: 0
+  - name: CostText
+    uniqueID: 2159966609
     locked: 0
   - name: Mouse Player
     uniqueID: 1303958301

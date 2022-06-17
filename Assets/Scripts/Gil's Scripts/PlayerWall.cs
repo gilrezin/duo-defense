@@ -69,6 +69,7 @@ public class PlayerWall : MonoBehaviour
 
     public void damageWall()
     {
+        Debug.Log("Damage Wall");
         health--;
         if (health <= 0) { // destroy self if health hits 0
             if (wallType == 1) // if explosive wall, spawn in an explosion along every node
@@ -77,7 +78,7 @@ public class PlayerWall : MonoBehaviour
             }
             Destroy(gameObject);
         }
-        for (int i = 0; i < wallTextures.Length; i++)
+        for (int i = 0; i < wallTextures.Length - 1; i++)
         {
             WallTexture wallTextureScript = gameObject.transform.GetChild(i).GetComponent<WallTexture>();
             wallTextureScript.ChangeSprite();

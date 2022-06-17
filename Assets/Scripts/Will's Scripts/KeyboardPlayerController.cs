@@ -9,12 +9,15 @@ public class KeyboardPlayerController : MonoBehaviour
     public TextMeshProUGUI arrowCounter;
     public float dashSpeed;
     public float speed;
+    public float walkSpeed;
+    public float climbSpeed;
     public GameObject arrow;
     //private float nextDash = 0;
     public float cooldown;
     private GameManager gameManager;
     public GameObject arrow2;
     public GameObject arrow3;
+    GameObject usedArrow = null;
     private int equippedArrow = 1;
     public int numOfExplosiveArrows = 5;
     // damage muliplier
@@ -32,6 +35,13 @@ public class KeyboardPlayerController : MonoBehaviour
     public GameObject multiSelected;
     public Camera mainCamera;
     public TextMeshProUGUI outOfAmmoText; // text that appears when right clicking to change wall type
+    public AudioSource bowShoot;
+    private bool inShop = false; // freezes keyboard player if true so that shop can be navigated
+    public AudioClip goldPickup;
+    public AudioClip outOfArrows;
+    public AudioSource playerSFX;
+    public AudioSource playerWalk;
+    public TowerController towerControllerScript;
 
     private Animator animator;
     // Start is called before the first frame update
@@ -43,6 +53,12 @@ public class KeyboardPlayerController : MonoBehaviour
         numOfExplosiveArrows = 5;
         numOfMultiArrows = 5;
         animator = GameObject.Find("KeyboardPlayer/player").GetComponent<Animator>();
+
+        usedArrow = arrow;
+        equippedArrow = 1;
+        basicSelected.SetActive(true);
+        explosiveSelected.gameObject.SetActive(false);
+        multiSelected.gameObject.SetActive(false);
     }
 
     // Update is called once per frame
@@ -59,42 +75,59 @@ public class KeyboardPlayerController : MonoBehaviour
             outOfAmmoText.transform.position = new Vector2(500,500);
         }
         // gets arrow and arrow stats
-        GameObject usedArrow = null;
-        if (equippedArrow == 1 || Input.GetKeyDown(KeyCode.Alpha1))
+        
+        if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.LeftArrow)) // change current arrow using arrow keys
         {
-            usedArrow = arrow;
-            equippedArrow = 1;
-            basicSelected.SetActive(true);
-            explosiveSelected.gameObject.SetActive(false);
-            multiSelected.gameObject.SetActive(false);
+            if (gameManager.tutorialStage == 4) // detection for switching arrows in tutorial
+                gameManager.tutorialStage = 5;
+
+            if (Input.GetKeyDown(KeyCode.RightArrow)) // increase 1 if right arrow, decrease if left arrow
+                equippedArrow++;
+            else { equippedArrow--; }
+
+            if (equippedArrow > 3) // only 3 arrow options
+                equippedArrow = 1;
+            else if (equippedArrow < 1)
+                equippedArrow = 3;
+            
+            if (equippedArrow == 1)
+            {
+                usedArrow = arrow;
+                equippedArrow = 1;
+                basicSelected.SetActive(true);
+                explosiveSelected.gameObject.SetActive(false);
+                multiSelected.gameObject.SetActive(false);
+            } else if (equippedArrow == 2)
+            {
+                usedArrow = arrow2;
+                equippedArrow = 2;
+                basicSelected.gameObject.SetActive(false);
+                explosiveSelected.gameObject.SetActive(true);
+                multiSelected.gameObject.SetActive(false);
+            } else if (equippedArrow == 3)
+            {
+                usedArrow = arrow3;
+                equippedArrow = 3;
+                basicSelected.gameObject.SetActive(false);
+                explosiveSelected.gameObject.SetActive(false);
+                multiSelected.gameObject.SetActive(true);
+            }
         }
-        if (equippedArrow == 2 || Input.GetKeyDown(KeyCode.Alpha2))
+
+        if(!gameManager.IsGameOver() && !gameManager.playersStunned && !inShop)
         {
-            gameManager.hasSwitchedK = true;
-            usedArrow = arrow2;
-            equippedArrow = 2;
-            basicSelected.gameObject.SetActive(false);
-            explosiveSelected.gameObject.SetActive(true);
-            multiSelected.gameObject.SetActive(false);
-        }
-        if (equippedArrow == 3 || Input.GetKeyDown(KeyCode.Alpha3))
-        {
-            gameManager.hasSwitchedK = true;
-            usedArrow = arrow3;
-            equippedArrow = 3;
-           basicSelected.gameObject.SetActive(false);
-            explosiveSelected.gameObject.SetActive(false);
-            multiSelected.gameObject.SetActive(true);
-        }
-        if(!gameManager.IsGameOver())
-        {
+            gameObject.GetComponent<BoxCollider2D>().enabled = true;
             if (Input.GetKeyDown(KeyCode.Space) && canShoot)
             {
-                //Debug.Log("shoot");
+                
+                //Debug.Log(usedArrow);
                 Vector3 location = transform.position;
                 Quaternion rotation = transform.rotation;
+                if (gameManager.tutorialStage == 2) // shooting tutorial detection
+                    gameManager.tutorialStage = 3;
                 if (usedArrow == arrow || (usedArrow == arrow2 && numOfExplosiveArrows > 0) || (usedArrow == arrow3 && numOfMultiArrows > 0))
                 {
+                    bowShoot.Play();
                     if (usedArrow == arrow2)
                     {
                         numOfExplosiveArrows--;
@@ -125,18 +158,23 @@ public class KeyboardPlayerController : MonoBehaviour
                 else if ((usedArrow == arrow2 && numOfExplosiveArrows == 0) || (usedArrow == arrow3 && numOfMultiArrows == 0)) // when out of ammo, display out of ammo text
                 {
                     StartCoroutine(displayOutOfAmmoText());
+                    playerSFX.clip = outOfArrows;
+                    playerSFX.Play();
                 }
                 
             }
             if (!Input.GetKey(KeyCode.LeftShift))
             {
-                if (Input.GetKey(KeyCode.W))
+                // WASD tutorial detection
+                if ((Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.D)) && gameManager.tutorialStage == 1)
+                    gameManager.tutorialStage = 2;
+                
+                if (Input.GetKey(KeyCode.W) && transform.position.y < 4.5)
                 {
-                    gameManager.hasMoved = true;
-                    if (Input.GetKey(KeyCode.W) && Input.GetKey(KeyCode.A))
+                    if (Input.GetKey(KeyCode.W) && Input.GetKey(KeyCode.A) && transform.position.y < 4.5 && transform.position.x > -8.36)
                     {
                         rotateAndMove(45);
-                    } else if (Input.GetKey(KeyCode.W) && Input.GetKey(KeyCode.D))
+                    } else if (Input.GetKey(KeyCode.W) && Input.GetKey(KeyCode.D) && transform.position.y < 4.5 && transform.position.x < 8.36)
                     {
                         rotateAndMove(315);
                     } else
@@ -148,14 +186,13 @@ public class KeyboardPlayerController : MonoBehaviour
                         animator.SetInteger("AnimationState", (int)4);
                     }
                 }
-                else if (Input.GetKey(KeyCode.D))
+                else if (Input.GetKey(KeyCode.D) && transform.position.x < 8.36)
                 {
-                    gameManager.hasMoved = true;
                     if (!Input.GetKey(KeyCode.S))
                     {
                         rotateAndMove(270);
                     }    
-                    if (Input.GetKey(KeyCode.S))
+                    if (Input.GetKey(KeyCode.S) && transform.position.y > -4.5)
                     {
                         rotateAndMove(225);
                     }
@@ -164,10 +201,9 @@ public class KeyboardPlayerController : MonoBehaviour
                         animator.SetInteger("AnimationState", (int)4);
                     }
                 }
-                else if (Input.GetKey(KeyCode.S))
+                else if (Input.GetKey(KeyCode.S) && transform.position.y > -4.5)
                 {
-                    gameManager.hasMoved = true;
-                    if (Input.GetKey(KeyCode.S) && Input.GetKey(KeyCode.A))
+                    if (Input.GetKey(KeyCode.S) && Input.GetKey(KeyCode.A) && transform.position.y > -4.5 && transform.position.x > -8.36)
                     {
                         rotateAndMove(135);
                     }
@@ -180,9 +216,8 @@ public class KeyboardPlayerController : MonoBehaviour
                         animator.SetInteger("AnimationState", (int)3);
                     }
                 }
-                else if (Input.GetKey(KeyCode.A))
+                else if (Input.GetKey(KeyCode.A) && transform.position.x > -8.36)
                 {
-                    gameManager.hasMoved = true;
                     rotateAndMove(90);
                     if (animator.GetInteger("AnimationState") != 1 && animator.GetInteger("AnimationState") != 2)
                     {
@@ -206,84 +241,19 @@ public class KeyboardPlayerController : MonoBehaviour
                         
                     }
                 }
-                if (Input.GetKey(KeyCode.Mouse0))
+                if (Input.GetKey(KeyCode.Mouse0) && gameManager.tutorialStage == 3) // drawing tutorial detection
                 {
-                    gameManager.hasDrawn = true;
+                    gameManager.tutorialStage = 4;
                 }
-                if (Input.GetKey(KeyCode.Mouse1))
+                if (Input.GetKey(KeyCode.Mouse1) && gameManager.tutorialStage == 5) // wall switching detection
                 {
-                    gameManager.hasSwitchedW = true;
+                    gameManager.tutorialStage = 6;
                 }
+                if ((Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Mouse2)) && gameManager.tutorialStage == 7 || gameManager.tutorialStage == 8)
+                        gameManager.tutorialStage++;
             }
             else
             {
-                /*if (Input.GetKey(KeyCode.W))
-                {
-                    if (Input.GetKey(KeyCode.W) && Input.GetKey(KeyCode.A))
-                    {
-                        rotate(45);
-                    }
-                    else if (Input.GetKey(KeyCode.W) && Input.GetKey(KeyCode.D))
-                    {
-                        rotate(315);
-                    }
-                    else
-                    {
-                        rotate(0);
-                    }
-                }
-                else if (Input.GetKey(KeyCode.D))
-                {
-                    if (!Input.GetKey(KeyCode.S))
-                    {
-                        rotate(270);
-                    }
-                    if (Input.GetKey(KeyCode.S))
-                    {
-                        rotate(225);
-                    }
-                }
-                else if (Input.GetKey(KeyCode.S))
-                {
-                    if (Input.GetKey(KeyCode.S) && Input.GetKey(KeyCode.A))
-                    {
-                        rotate(135);
-                    }
-                    else
-                    {
-                        rotate(180);
-                    }
-                }
-                else if (Input.GetKey(KeyCode.A))
-                {
-                    rotate(90);
-                }
-                else if (Input.GetKey(KeyCode.Q))
-                {
-                    GameObject[] enemies;
-                    enemies = GameObject.FindGameObjectsWithTag("Enemy");
-                    float distance = Mathf.Infinity;
-                    int j = 0;
-                    for (int i = 0; i < enemies.Length; i++)
-                    {
-                        if (Vector2.Distance(new Vector2(enemies[i].transform.position.x, enemies[i].transform.position.y), new Vector2(gameObject.transform.position.x, gameObject.transform.position.y)) < distance
-                                && InCone2D(gameObject.transform, new Vector2(enemies[i].transform.position.x, enemies[i].transform.position.y), Mathf.Infinity, 22f))
-                        {
-                            distance = Vector2.Distance(new Vector2(enemies[i].transform.position.x, enemies[i].transform.position.y), new Vector2(gameObject.transform.position.x, gameObject.transform.position.y));
-                            j = i;
-                        }
-                    }
-                    float changeInX = enemies[j].transform.position.x - gameObject.transform.position.x;
-                    float changeInY = enemies[j].transform.position.y - gameObject.transform.position.y;
-                    if (distance != Mathf.Infinity)
-                    {
-                        //gameObject.transform.position = ne
-                        //gameObject.transform.eulerAngles = new Vector3(gameObject.transform.position.x, gameObject.transform.position.y, Mathf.Atan(difference.x / difference.y) * 180 / Mathf.PI + 90);
-                        //gameObject.transform.LookAt(new Vector3(enemies[j].transform.position.x, enemies[j].transform.position.y, enemies[j].transform.position.z), -transform.forward);
-                        //LookAtDirection(gameObject, enemies[j].transform.position, Vector3.up);
-                        float rotation = -Mathf.Abs(Mathf.Atan(changeInX / changeInY) * Mathf.Rad2Deg);
-                        gameObject.transform.eulerAngles = new Vector3(0, 0, rotation);
-                    }*/
                 float changeInX = GetCurrentWorldPoint().x - gameObject.transform.position.x;
                 float changeInY = GetCurrentWorldPoint().y - gameObject.transform.position.y;
                 if (changeInY >= 0)
@@ -293,26 +263,36 @@ public class KeyboardPlayerController : MonoBehaviour
                 }
                 else
                 {
-                    gameManager.hasAimed = true;
+                   if (gameManager.tutorialStage == 6)
+                        gameManager.tutorialStage = 7;
                     float rotation = -(Mathf.Atan(changeInX / changeInY) * Mathf.Rad2Deg) - 180;
                     gameObject.transform.eulerAngles = new Vector3(0, 0, rotation);
                 }
-                
             }
+        }
+        else if (gameManager.playersStunned) // disable collider when stunned
+        {
+            gameObject.GetComponent<BoxCollider2D>().enabled = false;
+            if (animator.GetInteger("AnimationState") == 1 || animator.GetInteger("AnimationState") == 3 || animator.GetInteger("AnimationState") == 5)
+            {
+                animator.SetInteger("AnimationState", (int)7);
             }
-
+            else
+            {
+                animator.SetInteger("AnimationState", (int)8);
+            }
         }
 
-        /*if (Input.GetKey(KeyCode.LeftAlt) && Time.time >= nextDash)
+        WalkSFX();
+        if (Input.GetKeyDown(KeyCode.E)) // shop freezes keyboard player
         {
-            nextDash = Time.time + cooldown;
-            Dash();
-        }*/
-    
-    /*private void Dash()
-    {
-        transform.position += transform.up * dashSpeed;
-    }*/
+            if (!inShop && towerControllerScript.mShop)
+                inShop = true;
+            else if (inShop)
+                inShop = false;
+        }
+    }
+
     private void rotateAndMove(float angle)
     {
         transform.eulerAngles = new Vector3(transform.eulerAngles.x, transform.eulerAngles.y, angle);
@@ -375,5 +355,28 @@ public class KeyboardPlayerController : MonoBehaviour
         yield return new WaitForSeconds(1);
         outOfAmmoTextActive = false;
         outOfAmmoText.text = "";
-    } 
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        //Debug.Log(collision.gameObject.name);
+        if (collision.CompareTag("Wall"))
+            speed = climbSpeed;
+    }
+    private void OnTriggerExit2D(Collider2D collision)
+    {
+        if (collision.CompareTag("Wall"))
+            speed = walkSpeed;
+    }
+
+    public void WalkSFX()
+    {
+        if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.D))
+        {
+            playerWalk.volume = 1;
+        } else
+        {
+            playerWalk.volume = 0;
+        }
+    }
 }
